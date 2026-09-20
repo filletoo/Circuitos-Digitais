@@ -57,7 +57,6 @@
     <a name="circuit" val="main"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <comp loc="(520,240)" name="soma4bits"/>
   </circuit>
   <circuit name="soma1bit">
     <a name="appearance" val="logisim_evolution"/>
