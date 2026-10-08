@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project source="4.1.0" version="1.0">
+  This file is intended to be loaded by Logisim-evolution v4.1.0(https://github.com/logisim-evolution/).
+
+  <lib desc="#Wiring" name="0">
+    <tool name="Pin">
+      <a name="appearance" val="classic"/>
+    </tool>
+  </lib>
+  <lib desc="#Gates" name="1"/>
+  <lib desc="#Plexers" name="2"/>
+  <lib desc="#Arithmetic" name="3"/>
+  <lib desc="#FPArithmetic" name="4"/>
+  <lib desc="#Memory" name="5"/>
+  <lib desc="#I/O" name="6"/>
+  <lib desc="#TTL" name="7"/>
+  <lib desc="#TCL" name="8"/>
+  <lib desc="#Base" name="9"/>
+  <lib desc="#BFH-Praktika" name="10"/>
+  <lib desc="#Input/Output-Extra" name="11"/>
+  <lib desc="#Soc" name="12"/>
+  <main name="main"/>
+  <options>
+    <a name="gateUndefined" val="ignore"/>
+    <a name="simlimit" val="1000"/>
+    <a name="simrand" val="0"/>
+  </options>
+  <mappings/>
+  <toolbar>
+    <sep/>
+    <sep/>
+    <sep/>
+  </toolbar>
+  <circuit name="main">
+    <a name="appearance" val="logisim_evolution"/>
+    <a name="circuit" val="main"/>
+    <a name="circuitnamedboxfixedsize" val="true"/>
+    <a name="simulationFrequency" val="1.0"/>
+    <comp loc="(600,70)" name="Calculadora_Completa">
+      <a name="appearance" val="logisim_evolution"/>
+    </comp>
+  </circuit>
+  <vhdl name="Calculadora_Completa">LIBRARY ieee;
+USE ieee.std_logic_1164.all;
+USE ieee.numeric_std.all;
+
+ENTITY Calculadora_Completa IS
+  PORT (
+    -- Entradas do 1º Número (Teclado A)
+    a0, a1, a2, a3, a4, a5, a6, a7, a8, a9: IN std_logic;
+    -- Entradas do 2º Número (Teclado B)
+    b0, b1, b2, b3, b4, b5, b6, b7, b8, b9: IN std_logic;
+
+    -- Saídas para o Display da Unidade
+    S_a0, S_b0, S_c0, S_d0, S_e0, S_f0, S_g0: OUT std_logic;
+    -- Saídas para o Display da Dezena
+    S_a1, S_b1, S_c1, S_d1, S_e1, S_f1, S_g1: OUT std_logic
+  );
+END Calculadora_Completa;
+
+ARCHITECTURE Comportamento OF Calculadora_Completa IS
+    -- Fios internos para interligar os módulos dentro do código
+    signal A_bin, B_bin : std_logic_vector(3 downto 0);
+    signal Soma_bin : std_logic_vector(4 downto 0);
+    
+    signal a_uni, b_uni, c_uni, d_uni: std_logic; 
+    signal e_dez, f_dez, g_dez, h_dez: std_logic; 
+BEGIN
+    -- ==========================================
+    -- 1. CONVERSOR DEC2BIN (ENTRADAS A e B)
+    -- ==========================================
+    A_bin(3) &lt;= a9 or a8;
+    A_bin(2) &lt;= a4 or a5 or a6 or a7;
+    A_bin(1) &lt;= a2 or a3 or a6 or a7;
+    A_bin(0) &lt;= a1 or a3 or a5 or a7 or a9;
+
+    B_bin(3) &lt;= b9 or b8;
+    B_bin(2) &lt;= b4 or b5 or b6 or b7;
+    B_bin(1) &lt;= b2 or b3 or b6 or b7;
+    B_bin(0) &lt;= b1 or b3 or b5 or b7 or b9;
+
+    -- ==========================================
+    -- 2. SOMADOR (A + B)
+    -- ==========================================
+    Soma_bin &lt;= std_logic_vector(unsigned('0' &amp; A_bin) + unsigned('0' &amp; B_bin));
+
+    -- ==========================================
+    -- 3. CONVERSOR BIN2DEC (Shift-and-Add-3)
+    -- ==========================================
+    process(Soma_bin) is
+        variable BIN_org: std_logic_vector(4 DOWNTO 0);
+        variable BCD0_org, BCD1_org: std_logic_vector(3 DOWNTO 0);
+        variable BIN_shf: std_logic_vector(4 DOWNTO 0);
+        variable BCD0_shf, BCD1_shf: std_logic_vector(3 DOWNTO 0);
+        variable a, b, c, d, e, f, g, h: std_logic;
+    begin
+        BIN_org := Soma_bin;
+        BCD0_org := "0000";
+        BCD1_org := "0000";
+        
+        for i in 4 downto 0 loop
+            a := BCD0_org(3); b := BCD0_org(2);
+            c := BCD0_org(1); d := BCD0_org(0);
+            
+            e := BCD1_org(3); f := BCD1_org(2);
+            g := BCD1_org(1); h := BCD1_org(0);
+            
+            BCD0_shf(3) := ((b and d) or (b and c)) or a;
+            BCD0_shf(2) := (b and not c and not d) or (a and d) or (a and c);
+            BCD0_shf(1) := (not a and not b and c) or (c and d) or (a and not c and not d) or (a and b and not d);
+            BCD0_shf(0) := (not a and not b and d) or (not a and b and c and not d) or (a and not b and not d) or (a and b and d) or (a and not c and not d);
+                
+            BCD1_shf(3) := (f and h) or (f and g) or e;
+            BCD1_shf(2) := (f and not g and not h) or (e and h) or (e and g);
+            BCD1_shf(1) := (not e and not f and g) or (g and h) or (e and not g and not h) or (e and f and not h);
+            BCD1_shf(0) := (not e and not f and h) or (not e and f and g and not h) or (e and not f and not h) or (e and f and h) or (e and not g and not h);
+            
+            BCD0_org := BCD0_shf;
+            BCD1_org := BCD1_shf;
+            
+            BCD1_shf(3) := BCD1_org(2);
+            BCD1_shf(2) := BCD1_org(1);
+            BCD1_shf(1) := BCD1_org(0);
+            BCD1_shf(0) := BCD0_org(3);
+            
+            BCD0_shf(3) := BCD0_org(2);
+            BCD0_shf(2) := BCD0_org(1);
+            BCD0_shf(1) := BCD0_org(0);
+            BCD0_shf(0) := BIN_org(4);
+            
+            BIN_shf(4) := BIN_org(3);
+            BIN_shf(3) := BIN_org(2);
+            BIN_shf(2) := BIN_org(1);
+            BIN_shf(1) := BIN_org(0);
+            BIN_shf(0) := '0';
+            
+            BIN_org := BIN_shf;
+            BCD0_org := BCD0_shf;
+            BCD1_org := BCD1_shf;
+         end loop;
+         
+        a_uni &lt;= BCD0_org(3); b_uni &lt;= BCD0_org(2);
+        c_uni &lt;= BCD0_org(1); d_uni &lt;= BCD0_org(0);
+        
+        e_dez &lt;= BCD1_org(3); f_dez &lt;= BCD1_org(2);
+        g_dez &lt;= BCD1_org(1); h_dez &lt;= BCD1_org(0);
+    end process;
+
+    -- ==========================================
+    -- 4. DECODIFICADORES 7-SEGMENTOS
+    -- ==========================================
+    S_a0 &lt;= a_uni or c_uni or not ((not b_uni and d_uni) or (b_uni and not d_uni));
+    S_b0 &lt;= not b_uni or not ((not c_uni and d_uni) or (c_uni and not d_uni));
+    S_c0 &lt;= b_uni or not c_uni or d_uni;
+    S_d0 &lt;= a_uni or (not b_uni and not d_uni) or (not b_uni and c_uni) or (c_uni and not d_uni) or (b_uni and not c_uni and d_uni);
+    S_e0 &lt;= (not b_uni and not d_uni) or (c_uni and not d_uni);
+    S_f0 &lt;= a_uni or (not c_uni and not d_uni) or (b_uni and not c_uni) or (b_uni and not d_uni);
+    S_g0 &lt;= a_uni or ((not b_uni and c_uni) or (b_uni and not c_uni)) or (c_uni and not d_uni);
+
+    S_a1 &lt;= e_dez or g_dez or not ((not f_dez and h_dez) or (f_dez and not h_dez));
+    S_b1 &lt;= not f_dez or not ((not g_dez and h_dez) or (g_dez and not h_dez));
+    S_c1 &lt;= f_dez or not g_dez or h_dez;
+    S_d1 &lt;= e_dez or (not f_dez and not h_dez) or (not f_dez and g_dez) or (g_dez and not h_dez) or (f_dez and not g_dez and h_dez);
+    S_e1 &lt;= (not f_dez and not h_dez) or (g_dez and not h_dez);
+    S_f1 &lt;= e_dez or (not g_dez and not h_dez) or (f_dez and not g_dez) or (f_dez and not h_dez);
+    S_g1 &lt;= e_dez or ((not g_dez and f_dez) or (g_dez and not f_dez)) or (g_dez and not h_dez);
+
+END Comportamento;
+</vhdl>
+</project>
